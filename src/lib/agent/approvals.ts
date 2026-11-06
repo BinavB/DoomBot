@@ -1,3 +1,4 @@
+import { currentUserId } from "@/lib/auth/context";
 import { getDatabase } from "@/lib/database";
 import { findTool, type ToolArguments } from "@/lib/agent/tools";
 
@@ -33,28 +34,28 @@ function toApproval(row: ApprovalRow): Approval {
 
 export function createApproval(tool: string, summary: string, args: ToolArguments): number {
   const row = getDatabase()
-    .prepare("INSERT INTO approvals (tool, summary, arguments) VALUES (?, ?, ?) RETURNING id")
-    .get(tool, summary, JSON.stringify(args)) as unknown as { id: number };
+    .prepare("INSERT INTO approvals (user_id, tool, summary, arguments) VALUES (?, ?, ?, ?) RETURNING id")
+    .get(currentUserId(), tool, summary, JSON.stringify(args)) as unknown as { id: number };
   return row.id;
 }
 
 export function listPendingApprovals(): Approval[] {
   const rows = getDatabase()
-    .prepare("SELECT * FROM approvals WHERE status = 'pending' ORDER BY id")
-    .all() as unknown as ApprovalRow[];
+    .prepare("SELECT * FROM approvals WHERE user_id = ? AND status = 'pending' ORDER BY id")
+    .all(currentUserId()) as unknown as ApprovalRow[];
   return rows.map(toApproval);
 }
 
 function findPending(id: number): ApprovalRow | undefined {
   return getDatabase()
-    .prepare("SELECT * FROM approvals WHERE id = ? AND status = 'pending'")
-    .get(id) as unknown as ApprovalRow | undefined;
+    .prepare("SELECT * FROM approvals WHERE id = ? AND user_id = ? AND status = 'pending'")
+    .get(id, currentUserId()) as unknown as ApprovalRow | undefined;
 }
 
 function closeApproval(id: number, status: string, result: string): void {
   getDatabase()
-    .prepare("UPDATE approvals SET status = ?, result = ?, resolved_at = datetime('now') WHERE id = ?")
-    .run(status, result, id);
+    .prepare("UPDATE approvals SET status = ?, result = ?, resolved_at = datetime('now') WHERE id = ? AND user_id = ?")
+    .run(status, result, id, currentUserId());
 }
 
 function parseStoredArguments(json: string): ToolArguments {
@@ -86,7 +87,7 @@ export async function decideApproval(id: number, decision: "approve" | "deny"): 
   }
 
   const updated = getDatabase()
-    .prepare("SELECT * FROM approvals WHERE id = ?")
-    .get(id) as unknown as ApprovalRow;
+    .prepare("SELECT * FROM approvals WHERE id = ? AND user_id = ?")
+    .get(id, currentUserId()) as unknown as ApprovalRow;
   return toApproval(updated);
 }

@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { getBot, setRoutine } from "@/lib/bots/store";
 import { normalizeRoutine } from "@/lib/bots/validate";
+import { withUser } from "@/lib/auth/route";
 
-export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export const PUT = withUser(async (request: Request, { params }: { params: Promise<{ id: string }> }) => {
   const bot = getBot(Number((await params).id));
   if (!bot) {
     return NextResponse.json({ error: "That Doombot does not exist." }, { status: 404 });
@@ -24,12 +25,12 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   }
 
   return NextResponse.json({ bot: setRoutine(bot.id, routine, body.enabled !== false) });
-}
+});
 
-export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export const DELETE = withUser(async (_request: Request, { params }: { params: Promise<{ id: string }> }) => {
   const bot = getBot(Number((await params).id));
   if (!bot) {
     return NextResponse.json({ error: "That Doombot does not exist." }, { status: 404 });
   }
   return NextResponse.json({ bot: setRoutine(bot.id, null, false) });
-}
+});

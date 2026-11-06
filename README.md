@@ -1,36 +1,50 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DOOMBOT
 
-## Getting Started
+A self-hosted personal AI agent with a Doctor Doom theme. Chat with the chief bot, get a daily briefing, and run Doombots that keep their own memory, tasks and routines. Urgent results reach your phone through Web Push.
 
-First, run the development server:
+Every person signs in with Google and gets a private account. Chats, Doombots, memories, to-dos, alerts and Google connections are never shared between accounts.
+
+## What it does
+
+- Chat agent with an approval step for risky actions, using Gemini first and DeepSeek as a fallback.
+- Morning briefing at 07:00 Dubai time with weather, headlines, calendar, unread email and to-dos.
+- Doombots with private memory, assigned tasks and routines that run hourly, daily, on weekdays, weekly or monthly.
+- Read-only Google Calendar, Gmail and Tasks, connected per account.
+- Alerts page and phone alerts with Web Push.
+- A daily token limit per account to cap AI cost.
+
+## Run it locally
 
 ```bash
+npm install
+cp .env.example .env.local
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Fill in `.env.local`, then open http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Setting | What it is |
+| --- | --- |
+| `GEMINI_API_KEY`, `DEEPSEEK_API_KEY` | AI provider keys |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Google OAuth client, used for sign-in and for Calendar, Gmail and Tasks |
+| `AUTH_SECRET` | Random text of at least 32 characters that signs login cookies. Make one with `openssl rand -hex 32` |
+| `APP_URL` | The public address of the app, with no trailing slash |
+| `DAILY_TOKEN_LIMIT` | Tokens each account may use per day |
+| `DATABASE_PATH`, `NOTES_DIRECTORY` | Where the SQLite database and saved notes live |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+In the Google Cloud console, add these Authorized redirect URIs to the OAuth client, using your own `APP_URL`:
 
-## Learn More
+- `APP_URL/api/auth/google/callback`
+- `APP_URL/api/google/callback`
 
-To learn more about Next.js, take a look at the following resources:
+While the Google app is in Testing mode, only the test users you list can sign in. Reading Gmail for other people needs Google's app verification.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deploy on Railway
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+DOOMBOT keeps a SQLite file and runs its routines inside the server process, so it needs one always-on server with a saved disk. Railway fits this.
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Create a Railway project from this GitHub repo.
+2. Add a Volume and mount it at `/data`.
+3. Set the variables above, plus `DATABASE_PATH=/data/agent.db` and `NOTES_DIRECTORY=/data/notes`.
+4. Generate a public domain, set `APP_URL` to it, and add the two redirect URIs in Google Cloud.
+5. Keep the service at one instance.

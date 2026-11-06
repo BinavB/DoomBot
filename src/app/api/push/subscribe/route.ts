@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { removeSubscription, saveSubscription } from "@/lib/push";
+import { withUser } from "@/lib/auth/route";
 
 const pushServiceHosts = [
   "fcm.googleapis.com",
@@ -25,7 +26,7 @@ function readEndpoint(value: unknown): string | null {
   }
 }
 
-export async function POST(request: Request) {
+export const POST = withUser(async (request: Request) => {
   const body = (await request.json()) as {
     subscription?: { endpoint?: unknown; keys?: { p256dh?: unknown; auth?: unknown } };
   };
@@ -37,9 +38,9 @@ export async function POST(request: Request) {
   }
   saveSubscription({ endpoint, keys: { p256dh, auth } });
   return NextResponse.json({ ok: true }, { status: 201 });
-}
+});
 
-export async function DELETE(request: Request) {
+export const DELETE = withUser(async (request: Request) => {
   const body = (await request.json()) as { endpoint?: unknown };
   const endpoint = readEndpoint(body.endpoint);
   if (!endpoint) {
@@ -47,4 +48,4 @@ export async function DELETE(request: Request) {
   }
   removeSubscription(endpoint);
   return NextResponse.json({ ok: true });
-}
+});

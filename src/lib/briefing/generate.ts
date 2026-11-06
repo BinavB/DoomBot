@@ -1,4 +1,5 @@
 import { createChatCompletion } from "@/lib/ai";
+import { currentUserId } from "@/lib/auth/context";
 import { getDatabase } from "@/lib/database";
 import { fetchTechHeadlines, fetchWorldHeadlines } from "@/lib/briefing/feeds";
 import { fetchWeatherLine } from "@/lib/briefing/weather";
@@ -38,15 +39,15 @@ function toBriefing(row: BriefingRow): Briefing {
 
 export function findBriefing(day: string): Briefing | null {
   const row = getDatabase()
-    .prepare("SELECT * FROM briefings WHERE day = ? ORDER BY id DESC LIMIT 1")
-    .get(day) as unknown as BriefingRow | undefined;
+    .prepare("SELECT * FROM briefings WHERE user_id = ? AND day = ? ORDER BY id DESC LIMIT 1")
+    .get(currentUserId(), day) as unknown as BriefingRow | undefined;
   return row ? toBriefing(row) : null;
 }
 
 function openTodos(): string[] {
   const rows = getDatabase()
-    .prepare("SELECT title FROM todos WHERE done = 0 ORDER BY id")
-    .all() as { title: string }[];
+    .prepare("SELECT title FROM todos WHERE user_id = ? AND done = 0 ORDER BY id")
+    .all(currentUserId()) as { title: string }[];
   return rows.map((row) => row.title);
 }
 
@@ -146,8 +147,8 @@ export async function generateBriefing(): Promise<Briefing> {
 
   const result = getDatabase()
     .prepare(
-      "INSERT INTO briefings (day, content, summarized_by_ai, provider) VALUES (?, ?, ?, ?) RETURNING id, day, content, summarized_by_ai, provider, created_at",
+      "INSERT INTO briefings (user_id, day, content, summarized_by_ai, provider) VALUES (?, ?, ?, ?, ?) RETURNING id, day, content, summarized_by_ai, provider, created_at",
     )
-    .get(day, content, summarizedByAi ? 1 : 0, provider) as unknown as BriefingRow;
+    .get(currentUserId(), day, content, summarizedByAi ? 1 : 0, provider) as unknown as BriefingRow;
   return toBriefing(result);
 }

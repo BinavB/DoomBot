@@ -1,7 +1,5 @@
-import { connection, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import { withUser } from "@/lib/auth/route";
 import { isGoogleConnected } from "@/lib/google/oauth";
 
-export async function GET() {
-  await connection();
-  return NextResponse.json({ connected: isGoogleConnected() });
-}
+export const GET = withUser(async () => NextResponse.json({ connected: isGoogleConnected() }));

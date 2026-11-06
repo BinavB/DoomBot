@@ -72,5 +72,5 @@ export const config = {
   notesDirectory: readText("NOTES_DIRECTORY", "data/notes"),
   googleClientId: readText("GOOGLE_CLIENT_ID", ""),
   googleClientSecret: readText("GOOGLE_CLIENT_SECRET", ""),
-  googleRedirectUri: readText("GOOGLE_REDIRECT_URI", "http://localhost:3000/api/google/callback"),
+  appUrl: readText("APP_URL", "http://localhost:3000").replace(/\/+$/, ""),
 };

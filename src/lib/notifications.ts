@@ -1,5 +1,6 @@
+import { currentUserId } from "@/lib/auth/context";
 import { getDatabase } from "@/lib/database";
-import { sendPushToAll } from "@/lib/push";
+import { sendPushToCurrentUser } from "@/lib/push";
 
 export interface Notification {
   id: number;
@@ -38,10 +39,11 @@ function toNotification(row: NotificationRow): Notification {
 const pushBodyLength = 160;
 
 export function createNotification(input: { botId: number | null; title: string; body: string; urgent: boolean }): void {
+  const userId = currentUserId();
   getDatabase()
-    .prepare("INSERT INTO notifications (bot_id, title, body, urgent) VALUES (?, ?, ?, ?)")
-    .run(input.botId, input.title, input.body, input.urgent ? 1 : 0);
-  sendPushToAll({
+    .prepare("INSERT INTO notifications (user_id, bot_id, title, body, urgent) VALUES (?, ?, ?, ?, ?)")
+    .run(userId, input.botId, input.title, input.body, input.urgent ? 1 : 0);
+  sendPushToCurrentUser({
     title: input.title,
     body: input.body.slice(0, pushBodyLength),
     url: "/alerts",
@@ -53,18 +55,18 @@ export function createNotification(input: { botId: number | null; title: string;
 
 export function listNotifications(): Notification[] {
   const rows = getDatabase()
-    .prepare("SELECT * FROM notifications ORDER BY id DESC LIMIT ?")
-    .all(listLimit) as unknown as NotificationRow[];
+    .prepare("SELECT * FROM notifications WHERE user_id = ? ORDER BY id DESC LIMIT ?")
+    .all(currentUserId(), listLimit) as unknown as NotificationRow[];
   return rows.map(toNotification);
 }
 
 export function unreadCount(): number {
   const row = getDatabase()
-    .prepare("SELECT COUNT(*) AS count FROM notifications WHERE read = 0")
-    .get() as unknown as { count: number };
+    .prepare("SELECT COUNT(*) AS count FROM notifications WHERE user_id = ? AND read = 0")
+    .get(currentUserId()) as unknown as { count: number };
   return row.count;
 }
 
 export function markAllRead(): void {
-  getDatabase().prepare("UPDATE notifications SET read = 1 WHERE read = 0").run();
+  getDatabase().prepare("UPDATE notifications SET read = 1 WHERE user_id = ? AND read = 0").run(currentUserId());
 }

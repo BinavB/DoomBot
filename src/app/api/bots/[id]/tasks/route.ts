@@ -1,20 +1,20 @@
-import { connection, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { startTask } from "@/lib/bots/run";
 import { getBot, listTasks } from "@/lib/bots/store";
+import { withUser } from "@/lib/auth/route";
 
 const taskHistoryLimit = 30;
 const maxInstructionLength = 2000;
 
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  await connection();
+export const GET = withUser(async (_request: Request, { params }: { params: Promise<{ id: string }> }) => {
   const bot = getBot(Number((await params).id));
   if (!bot) {
     return NextResponse.json({ error: "That Doombot does not exist." }, { status: 404 });
   }
   return NextResponse.json({ tasks: listTasks(bot.id, taskHistoryLimit) });
-}
+});
 
-export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export const POST = withUser(async (request: Request, { params }: { params: Promise<{ id: string }> }) => {
   const bot = getBot(Number((await params).id));
   if (!bot) {
     return NextResponse.json({ error: "That Doombot does not exist." }, { status: 404 });
@@ -34,4 +34,4 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     console.error("Doombot task failed:", error);
   });
   return NextResponse.json({ task }, { status: 202 });
-}
+});

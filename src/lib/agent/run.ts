@@ -8,6 +8,7 @@ import {
   toolSpecs,
   type ToolArguments,
 } from "@/lib/agent/tools";
+import { currentUserId } from "@/lib/auth/context";
 import { getDatabase } from "@/lib/database";
 import { describeNow } from "@/lib/time";
 
@@ -46,15 +47,15 @@ function systemPrompt(): string {
 
 export function loadMessages(limit: number): StoredMessage[] {
   const rows = getDatabase()
-    .prepare("SELECT id, role, content FROM messages WHERE conversation_id = ? ORDER BY id DESC LIMIT ?")
-    .all(conversationId, limit) as unknown as StoredMessage[];
+    .prepare("SELECT id, role, content FROM messages WHERE user_id = ? AND conversation_id = ? ORDER BY id DESC LIMIT ?")
+    .all(currentUserId(), conversationId, limit) as unknown as StoredMessage[];
   return rows.reverse();
 }
 
 function saveMessage(role: "user" | "assistant", content: string): void {
   getDatabase()
-    .prepare("INSERT INTO messages (conversation_id, role, content) VALUES (?, ?, ?)")
-    .run(conversationId, role, content);
+    .prepare("INSERT INTO messages (user_id, conversation_id, role, content) VALUES (?, ?, ?, ?)")
+    .run(currentUserId(), conversationId, role, content);
 }
 
 async function delegateToBot(name: string, args: ToolArguments): Promise<string> {

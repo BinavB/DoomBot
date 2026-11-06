@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { createNotification } from "@/lib/notifications";
+import { withUser } from "@/lib/auth/route";
 
-export async function POST() {
+export const POST = withUser(async () => {
   createNotification({
     botId: null,
     title: "Test alert",
@@ -9,4 +10,4 @@ export async function POST() {
     urgent: false,
   });
   return NextResponse.json({ ok: true });
-}
+});

@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { currentUserId } from "@/lib/auth/context";
 import { createChiefTools } from "@/lib/agent/chief-tools";
 import type { ToolSpec } from "@/lib/ai";
 import { fetchWeatherLine } from "@/lib/briefing/weather";
@@ -41,10 +42,11 @@ function slugify(title: string): string {
 async function saveNote(args: ToolArguments): Promise<string> {
   const title = readText(args, "title", 120);
   const body = readText(args, "body", 20000);
-  await mkdir(config.notesDirectory, { recursive: true });
+  const directory = join(config.notesDirectory, String(currentUserId()));
+  await mkdir(directory, { recursive: true });
   const fileName = `${new Date().toISOString().replace(/[:.]/g, "-")}-${slugify(title)}.md`;
-  await writeFile(join(config.notesDirectory, fileName), `# ${title}\n\n${body}\n`, { flag: "wx" });
-  return `Saved note "${title}" as ${join(config.notesDirectory, fileName)}.`;
+  await writeFile(join(directory, fileName), `# ${title}\n\n${body}\n`, { flag: "wx" });
+  return `Saved note "${title}" in your notes folder as ${fileName}.`;
 }
 
 const tools: AgentTool[] = [

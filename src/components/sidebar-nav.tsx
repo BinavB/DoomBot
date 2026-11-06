@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState } from "react";
 import { approvalsChangedEvent } from "@/components/events";
 import { DoomMark } from "@/components/doom-mark";
 import { Icon } from "@/components/icon";
+import { UserMenu } from "@/components/user-menu";
 
 const unreadPollMilliseconds = 15000;
 
@@ -89,6 +90,7 @@ export function SidebarNav() {
           );
         })}
       </ul>
+      <UserMenu />
     </nav>
   );
 }

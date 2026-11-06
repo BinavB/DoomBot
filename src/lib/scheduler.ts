@@ -1,3 +1,5 @@
+import { runAsUser } from "@/lib/auth/context";
+import { listActiveUserIds } from "@/lib/auth/users";
 import { startTask } from "@/lib/bots/run";
 import { listRoutineBots, markRoutineRan } from "@/lib/bots/store";
 import { routinePeriod } from "@/lib/bots/schedule";
@@ -12,19 +14,28 @@ const globalForScheduler = globalThis as unknown as {
   doombotBriefingRunning?: boolean;
 };
 
-async function runBriefingIfDue(): Promise<void> {
-  if (globalForScheduler.doombotBriefingRunning) {
-    return;
-  }
-  if (currentClock() !== config.briefingTime) {
-    return;
-  }
-  if (findBriefing(currentDay())) {
+async function briefUser(userId: number): Promise<void> {
+  await runAsUser(userId, async () => {
+    if (findBriefing(currentDay())) {
+      return;
+    }
+    try {
+      await generateBriefing();
+    } catch (error) {
+      console.error(`Morning briefing failed for user ${userId}:`, error);
+    }
+  });
+}
+
+async function runBriefingsIfDue(): Promise<void> {
+  if (globalForScheduler.doombotBriefingRunning || currentClock() !== config.briefingTime) {
     return;
   }
   globalForScheduler.doombotBriefingRunning = true;
   try {
-    await generateBriefing();
+    for (const userId of listActiveUserIds()) {
+      await briefUser(userId);
+    }
   } finally {
     globalForScheduler.doombotBriefingRunning = false;
   }
@@ -41,9 +52,11 @@ function runDueRoutines(at: Date): void {
       continue;
     }
     markRoutineRan(bot.id, period);
-    startTask(bot, routine.instruction, "routine").completion.catch((error: unknown) => {
-      console.error(`Routine for ${bot.name} failed:`, error);
-    });
+    runAsUser(bot.userId, () =>
+      startTask(bot, routine.instruction, "routine").completion.catch((error: unknown) => {
+        console.error(`Routine for ${bot.name} failed:`, error);
+      }),
+    );
   }
 }
 
@@ -53,8 +66,8 @@ export function startScheduler(): void {
   }
   globalForScheduler.doombotSchedulerStarted = true;
   setInterval(() => {
-    runBriefingIfDue().catch((error: unknown) => {
-      console.error("Morning briefing failed:", error);
+    runBriefingsIfDue().catch((error: unknown) => {
+      console.error("Morning briefings failed:", error);
     });
     try {
       runDueRoutines(new Date());

@@ -1,14 +1,14 @@
-import { connection, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { botAllowedToolInfos } from "@/lib/agent/tools";
 import { createBot, getBotActivity, listBots } from "@/lib/bots/store";
 import { normalizeBotInput } from "@/lib/bots/validate";
+import { withUser } from "@/lib/auth/route";
 
-export async function GET() {
-  await connection();
+export const GET = withUser(async () => {
   return NextResponse.json({ bots: listBots().map((bot) => ({ ...bot, activity: getBotActivity(bot.id) })) });
-}
+});
 
-export async function POST(request: Request) {
+export const POST = withUser(async (request: Request) => {
   const body = (await request.json()) as Record<string, unknown>;
   const input = normalizeBotInput(body, new Set(botAllowedToolInfos().map((tool) => tool.name)));
   if (typeof input === "string") {
@@ -23,4 +23,4 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-}
+});

@@ -1,4 +1,5 @@
 import webpush from "web-push";
+import { currentUserId } from "@/lib/auth/context";
 import { getDatabase } from "@/lib/database";
 
 export interface PushSubscriptionInput {
@@ -55,20 +56,21 @@ export function vapidPublicKey(): string {
 export function saveSubscription(subscription: PushSubscriptionInput): void {
   getDatabase()
     .prepare(
-      `INSERT INTO push_subscriptions (endpoint, p256dh, auth) VALUES (?, ?, ?)
-       ON CONFLICT(endpoint) DO UPDATE SET p256dh = excluded.p256dh, auth = excluded.auth`,
+      `INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth) VALUES (?, ?, ?, ?)
+       ON CONFLICT(endpoint) DO UPDATE SET user_id = excluded.user_id, p256dh = excluded.p256dh, auth = excluded.auth`,
     )
-    .run(subscription.endpoint, subscription.keys.p256dh, subscription.keys.auth);
+    .run(currentUserId(), subscription.endpoint, subscription.keys.p256dh, subscription.keys.auth);
 }
 
 export function removeSubscription(endpoint: string): void {
-  getDatabase().prepare("DELETE FROM push_subscriptions WHERE endpoint = ?").run(endpoint);
+  getDatabase().prepare("DELETE FROM push_subscriptions WHERE endpoint = ? AND user_id = ?").run(endpoint, currentUserId());
 }
 
-export async function sendPushToAll(payload: PushPayload): Promise<void> {
+export async function sendPushToCurrentUser(payload: PushPayload): Promise<void> {
+  const userId = currentUserId();
   const rows = getDatabase()
-    .prepare("SELECT endpoint, p256dh, auth FROM push_subscriptions")
-    .all() as unknown as SubscriptionRow[];
+    .prepare("SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = ?")
+    .all(userId) as unknown as SubscriptionRow[];
   if (rows.length === 0) {
     return;
   }

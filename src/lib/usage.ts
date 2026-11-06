@@ -1,3 +1,4 @@
+import { currentUserId } from "@/lib/auth/context";
 import { getDatabase } from "@/lib/database";
 import { currentDay } from "@/lib/time";
 
@@ -8,16 +9,16 @@ export function recordUsage(
 ): void {
   getDatabase()
     .prepare(
-      "INSERT INTO usage (day, model, prompt_tokens, completion_tokens) VALUES (?, ?, ?, ?)",
+      "INSERT INTO usage (user_id, day, model, prompt_tokens, completion_tokens) VALUES (?, ?, ?, ?, ?)",
     )
-    .run(currentDay(), model, promptTokens, completionTokens);
+    .run(currentUserId(), currentDay(), model, promptTokens, completionTokens);
 }
 
 export function tokensUsedToday(): number {
   const row = getDatabase()
     .prepare(
-      "SELECT COALESCE(SUM(prompt_tokens + completion_tokens), 0) AS total FROM usage WHERE day = ?",
+      "SELECT COALESCE(SUM(prompt_tokens + completion_tokens), 0) AS total FROM usage WHERE user_id = ? AND day = ?",
     )
-    .get(currentDay()) as { total: number };
+    .get(currentUserId(), currentDay()) as { total: number };
   return row.total;
 }

@@ -1,16 +1,16 @@
-import { connection, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { deleteMemory, getBot, listMemories } from "@/lib/bots/store";
+import { withUser } from "@/lib/auth/route";
 
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  await connection();
+export const GET = withUser(async (_request: Request, { params }: { params: Promise<{ id: string }> }) => {
   const bot = getBot(Number((await params).id));
   if (!bot) {
     return NextResponse.json({ error: "That Doombot does not exist." }, { status: 404 });
   }
   return NextResponse.json({ memories: listMemories(bot.id) });
-}
+});
 
-export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+export const DELETE = withUser(async (request: Request, { params }: { params: Promise<{ id: string }> }) => {
   const bot = getBot(Number((await params).id));
   if (!bot) {
     return NextResponse.json({ error: "That Doombot does not exist." }, { status: 404 });
@@ -21,4 +21,4 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   }
   deleteMemory(bot.id, body.memoryId);
   return NextResponse.json({ ok: true });
-}
+});

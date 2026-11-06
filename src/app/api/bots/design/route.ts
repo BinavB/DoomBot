@@ -3,10 +3,11 @@ import { botAllowedToolInfos } from "@/lib/agent/tools";
 import { designBots } from "@/lib/bots/design";
 import { createBot, type Bot } from "@/lib/bots/store";
 import { AgentError } from "@/lib/errors";
+import { withUser } from "@/lib/auth/route";
 
 const preferenceLimits = { min: 10, max: 2000 };
 
-export async function POST(request: Request) {
+export const POST = withUser(async (request: Request) => {
   const body = (await request.json()) as { preferences?: unknown };
   const preferences = typeof body.preferences === "string" ? body.preferences.trim() : "";
   if (preferences.length < preferenceLimits.min || preferences.length > preferenceLimits.max) {
@@ -39,4 +40,4 @@ export async function POST(request: Request) {
     const message = error instanceof AgentError ? error.message : "Designing Doombots failed. Try again.";
     return NextResponse.json({ error: message }, { status: 500 });
   }
-}
+});
