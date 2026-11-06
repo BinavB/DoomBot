@@ -1,3 +1,4 @@
+import { config } from "@/lib/config";
 import { getDatabase, userOwnedTables } from "@/lib/database";
 
 export interface User {
@@ -31,8 +32,12 @@ function toUser(row: UserRow): User {
 function claimLegacyData(userId: number): void {
   const database = getDatabase();
   for (const table of userOwnedTables) {
-    database.prepare(`UPDATE ${table} SET user_id = ? WHERE user_id = 0`).run(userId);
+    database.prepare(`UPDATE OR IGNORE ${table} SET user_id = ? WHERE user_id = 0`).run(userId);
   }
+}
+
+function isOwner(profile: GoogleProfile): boolean {
+  return config.ownerEmail.length > 0 && profile.email.toLowerCase() === config.ownerEmail;
 }
 
 export function upsertGoogleUser(profile: GoogleProfile): User {
@@ -46,13 +51,15 @@ export function upsertGoogleUser(profile: GoogleProfile): User {
         "UPDATE users SET email = ?, name = ?, picture = ?, last_seen_at = datetime('now') WHERE id = ? RETURNING id, email, name, picture",
       )
       .get(profile.email, profile.name, profile.picture, existing.id) as unknown as UserRow;
+    if (isOwner(profile)) {
+      claimLegacyData(row.id);
+    }
     return toUser(row);
   }
-  const isFirstUser = (database.prepare("SELECT COUNT(*) AS count FROM users").get() as unknown as { count: number }).count === 0;
   const row = database
     .prepare("INSERT INTO users (google_sub, email, name, picture) VALUES (?, ?, ?, ?) RETURNING id, email, name, picture")
     .get(profile.sub, profile.email, profile.name, profile.picture) as unknown as UserRow;
-  if (isFirstUser) {
+  if (isOwner(profile)) {
     claimLegacyData(row.id);
   }
   return toUser(row);

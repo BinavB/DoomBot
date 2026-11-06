@@ -29,6 +29,7 @@ Fill in `.env.local`, then open http://localhost:3000.
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Google OAuth client, used for sign-in and for Calendar, Gmail and Tasks |
 | `AUTH_SECRET` | Random text of at least 32 characters that signs login cookies. Make one with `openssl rand -hex 32` |
 | `APP_URL` | The public address of the app, with no trailing slash |
+| `OWNER_EMAIL` | The Google email that takes over data saved before sign-in was added |
 | `DAILY_TOKEN_LIMIT` | Tokens each account may use per day |
 | `DATABASE_PATH`, `NOTES_DIRECTORY` | Where the SQLite database and saved notes live |
 
