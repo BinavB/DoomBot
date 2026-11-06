@@ -40,12 +40,70 @@ In the Google Cloud console, add these Authorized redirect URIs to the OAuth cli
 
 While the Google app is in Testing mode, only the test users you list can sign in. Reading Gmail for other people needs Google's app verification.
 
-## Deploy on Railway
+## Deploy on Google Cloud (free)
 
-DOOMBOT keeps a SQLite file and runs its routines inside the server process, so it needs one always-on server with a saved disk. Railway fits this.
+DOOMBOT keeps a SQLite file and runs its routines inside the server process, so it needs an always-on server with a saved disk. A Google Cloud `e2-micro` VM in `us-central1` (Iowa), `us-west1` (Oregon) or `us-east1` (South Carolina) stays free within Google's free-tier limits. The scripts in `deploy/gcp/` set it up.
 
-1. Create a Railway project from this GitHub repo.
-2. Add a Volume and mount it at `/data`.
-3. Set the variables above, plus `DATABASE_PATH=/data/agent.db` and `NOTES_DIRECTORY=/data/notes`.
-4. Generate a public domain, set `APP_URL` to it, and add the two redirect URIs in Google Cloud.
-5. Keep the service at one instance.
+### 1. Get a free domain
+1. Sign in at https://www.duckdns.org with GitHub or Google.
+2. Create a subdomain, such as `doombot-yourname`, and point it at the VM's external IP once you have it.
+
+### 2. Create the VM
+1. In Google Cloud, create a project and enable Compute Engine.
+2. Create a VM instance: region `us-central1`, machine type `e2-micro`, boot disk Ubuntu 24.04 LTS with 30 GB standard persistent disk.
+3. Tick **Allow HTTP traffic** and **Allow HTTPS traffic**.
+4. Reserve a static external IP for the VM and set it on your DuckDNS subdomain.
+
+### 3. Run the setup script
+Open SSH from the Compute Engine page, then run:
+
+```bash
+curl -fsSLO https://raw.githubusercontent.com/BinavB/DoomBot/main/deploy/gcp/setup.sh
+sudo DOMAIN=your-subdomain.duckdns.org bash setup.sh
+```
+
+### 4. Add your settings
+Open the settings file and add the values from your `.env.local`:
+
+```bash
+sudo nano /etc/doombot.env
+```
+
+```
+AI_PROVIDERS=gemini,deepseek
+GEMINI_API_KEY=
+DEEPSEEK_API_KEY=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+AUTH_SECRET=
+APP_URL=https://your-subdomain.duckdns.org
+OWNER_EMAIL=binav5555@gmail.com
+APP_TIMEZONE=Asia/Dubai
+BRIEFING_TIME=07:00
+DAILY_TOKEN_LIMIT=200000
+DATABASE_PATH=/var/lib/doombot/agent.db
+NOTES_DIRECTORY=/var/lib/doombot/notes
+```
+
+Make `AUTH_SECRET` a new random value with `openssl rand -hex 32`. Then start the app:
+
+```bash
+sudo systemctl restart doombot
+```
+
+### 5. Google Cloud OAuth
+In your OAuth client, add these Authorized redirect URIs, using your own domain:
+- `https://your-subdomain.duckdns.org/api/auth/google/callback`
+- `https://your-subdomain.duckdns.org/api/google/callback`
+
+Add `binav5555@gmail.com` under **OAuth consent screen → Test users**.
+
+### Updates
+After you push new commits, run this on the VM:
+
+```bash
+sudo /opt/doombot/deploy/gcp/update.sh
+```
+
+### Keep it running
+The app runs as a service named `doombot`. Check it with `sudo systemctl status doombot`, and read its log with `sudo journalctl -u doombot -f`.
