@@ -2,6 +2,10 @@
 
 Live app (when the Mac and tunnel are running): https://huntsman-wanting-retread.ngrok-free.dev/
 
+Cloud version: https://doombot-igba.onrender.com/
+
+**DOOMBOT Cloud** is the always-on, multi-user version of this app. It keeps all data in a Turso database instead of a local file, so it runs on a free host (Render) without needing your computer to stay on. Anyone can sign in with Google and gets their own private chats, Doombots and memories. The code is in the [DoomBot-Cloud](https://github.com/BinavB/DoomBot-Cloud) repository.
+
 A self-hosted personal AI agent with a Doctor Doom theme. Chat with the chief bot, get a daily briefing, and run Doombots that keep their own memory, tasks and routines. Urgent results reach your phone through Web Push.
 
 Every person signs in with Google and gets a private account. Chats, Doombots, memories, to-dos, alerts and Google connections are never shared between accounts.
