@@ -1,5 +1,7 @@
 # DOOMBOT
 
+Live app (when the Mac and tunnel are running): https://huntsman-wanting-retread.ngrok-free.dev/
+
 A self-hosted personal AI agent with a Doctor Doom theme. Chat with the chief bot, get a daily briefing, and run Doombots that keep their own memory, tasks and routines. Urgent results reach your phone through Web Push.
 
 Every person signs in with Google and gets a private account. Chats, Doombots, memories, to-dos, alerts and Google connections are never shared between accounts.
@@ -102,7 +104,7 @@ Add `binav5555@gmail.com` under **OAuth consent screen → Test users**.
 After you push new commits, run this on the VM:
 
 ```bash
-sudo /opt/doombot/deploy/gcp/update.sh
+sudo doombot-update
 ```
 
 ### Keep it running
